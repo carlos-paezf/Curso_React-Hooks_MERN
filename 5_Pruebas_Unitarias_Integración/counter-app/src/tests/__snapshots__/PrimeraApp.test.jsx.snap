@@ -1,0 +1,41 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Pruebas en <PrimeraApp /> Debe mostrar <PrimeraApp /> correctamente 1`] = `
+<Fragment>
+  <h1>
+    Bienvenido 
+    David
+     
+    nn
+  </h1>
+  <pre>
+    Hola mundo - const
+  </pre>
+  <pre>
+    true
+  </pre>
+  <pre>
+    {"nombre":"David","apellido":"Ferrer","edad":21}
+  </pre>
+</Fragment>
+`;
+
+exports[`Pruebas en <PrimeraApp /> Debe mostrar el apellido enviado por props 1`] = `
+<Fragment>
+  <h1>
+    Bienvenido 
+    David
+     
+    nn
+  </h1>
+  <pre>
+    Hola mundo - const
+  </pre>
+  <pre>
+    true
+  </pre>
+  <pre>
+    {"nombre":"David","apellido":"Ferrer","edad":21}
+  </pre>
+</Fragment>
+`;
