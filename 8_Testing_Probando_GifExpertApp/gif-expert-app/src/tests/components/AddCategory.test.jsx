@@ -1,4 +1,5 @@
 import React from 'react';
+import "@testing-library/jest-dom"
 import { shallow } from 'enzyme'
 import { AddCategory } from '../../components'
 
@@ -30,5 +31,17 @@ describe('Pruebas en el componente <AddCategory />', () => {
         const form = wrapper.find('form')
         form.simulate('submit', { preventDefault() { } })
         expect(setCategories).not.toHaveBeenCalled()
+    })
+
+    test('Debe de llamar la función setCategories y limpiar la caja de texto', () => {
+        const value = 'Hola mundo'
+        const input = wrapper.find('input')
+        input.simulate('change', { target: { value } })
+
+        wrapper.find('form').simulate('submit', { preventDefault() { } })
+        expect(setCategories).toHaveBeenCalled()
+        expect(setCategories).toHaveBeenCalledTimes(1)
+        expect(setCategories).toHaveBeenCalledWith(expect.any(Function))
+        expect(input.props().value).toBe('')
     })
 });

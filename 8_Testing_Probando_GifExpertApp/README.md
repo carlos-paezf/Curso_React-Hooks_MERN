@@ -229,3 +229,244 @@ describe('Pruebas en el componente <AddCategory />', () => {
     })
 });
 ```
+
+## Simular submit llamando la función y limpiando el inputValue
+
+Necesitamos simular el cambio en el input, luego simular el envío del del formulario con dicho cambio. Una vez hecho el envío, debemos esperar que la función `setCategories` haya sido llamada y que el valor del input vuelva a ser un string vacío `''`:
+
+```jsx
+describe('Pruebas en el componente <AddCategory />', () => {
+    ...
+    test('Debe de llamar la función setCategories y limpiar la caja de texto', () => {
+        const value = 'Hola mundo'
+        const input = wrapper.find('input')
+        input.simulate('change', { target: { value } })
+
+        wrapper.find('form').simulate('submit', { preventDefault() { } })
+        expect(setCategories).toHaveBeenCalled()
+        expect(input.props().value).toBe('')
+    })
+});
+```
+
+Podemos evaluar que el llamado de la función se haga n veces, o que el tipo de llamado sea de una función:
+
+```jsx
+describe('Pruebas en el componente <AddCategory />', () => {
+    ...
+    test('Debe de llamar la función setCategories y limpiar la caja de texto', () => {
+        ...
+        expect(setCategories).toHaveBeenCalled()
+        expect(setCategories).toHaveBeenCalledTimes(1)
+        expect(setCategories).toHaveBeenCalledWith(expect.any(Function))
+        ...
+    })
+});
+```
+
+## Pruebas al componente GifGrid - Mock customHook
+
+El ideal es que nuestro componentes tengan un tipado en los props, con la finalidad de obligarnos a pasar argumentos correctos a nuestro componente, y para mejorar las pruebas:
+
+```jsx
+GifGrid.propTypes = {
+    category: PropTypes.string.isRequired
+}
+```
+
+La primera prueba que le vamos a hacer al componente es crear un snapshot y hacer match con el mismo:
+
+```jsx
+import React from 'react';
+import '@testing-library/jest-dom'
+import { shallow } from 'enzyme'
+import { GifGrid } from '../../components';
+
+
+describe('Pruebas al componente <GifGrid />', () => {
+    const category = 'test'
+    const wrapper = shallow(<GifGrid category={category} />)
+
+    test('Debe mostrarse correctamente', () => {
+        expect(wrapper).toMatchSnapshot()
+    });
+});
+```
+
+Este componente tiene la peculiaridad de que está usando nuestro hook personalizado. Para poder hacer el test del componente `<GifGrid />` requerimos simular la respuesta del customHook, razón por la cual usamos `jest.mock()` para gestionar y controlar la false petición:
+
+```jsx
+import { useFetchGifs } from '../../hooks';
+
+jest.mock('../../hooks/useFetchGifs')
+```
+
+Luego, cuando hacemos el snapshot, necesitamos establecer los valores falsos que retorna el customHook cuando el componente se renderiza por defecto.
+
+```jsx
+describe('Pruebas al componente <GifGrid />', () => {
+    const category = 'test'
+    
+    test('Debe mostrarse correctamente', () => {
+        useFetchGifs.mockReturnValue({
+            data: [],
+            loading: true
+        }) 
+        const wrapper = shallow(<GifGrid category={category} />)
+        expect(wrapper).toMatchSnapshot()
+    });
+});
+```
+
+Ahora necesitamos retornar una respuesta falsa con elementos para poder evaluar que se está comportando como esperamos cuando ya tenemos data:
+
+```jsx
+describe('Pruebas al componente <GifGrid />', () => {
+    ...
+    test('Debe de mostrar items cuando se cargan imágenes useFetchGifs', () => {
+        const gifs = [{
+            id: 'ABX',
+            url: 'url aquí',
+            title: 'título del gif'
+        }]
+        
+        useFetchGifs.mockReturnValue({
+            data: gifs,
+            loading: false
+        })
+        const wrapper = shallow(<GifGrid category={category} />)
+        expect(wrapper).toMatchSnapshot()
+    })
+});
+```
+
+## Evaluar si existen componentes
+
+Nosotros podemos hacer una prueba más estricta a nuestro componente, al evaluar que cuando tengamos valores dentro de la data, no se muestre el estado de carga y que además, la cantidad de componentes `<GifGridItems />` sea igual a la cantidad de elementos que contiene el arreglo de la data:
+
+```jsx
+describe('Pruebas al componente <GifGrid />', () => {
+    ...
+    test('Debe de mostrar items cuando se cargan imágenes useFetchGifs', () => {
+        ...
+        expect(wrapper.find('p').exists()).toBe(false)
+        expect(wrapper.find('GifGridItem').length).toBe(gifs.length)
+    })
+});
+```
+
+## Pruebas del componente GifExpertApp
+
+La primera prueba que vamos a hacer es crear un snapshot al componente `<GifExpertApp />`:
+
+```jsx
+import React from 'react';
+import '@testing-library/jest-dom'
+import { shallow } from 'enzyme'
+import GifExpertApp from '../GifExpertApp'
+
+
+describe('Pruebas al componente <GifExpertApp />', () => {
+    const wrapper = shallow(<GifExpertApp />)
+
+    test('Debe mostrarse correctamente', () => {
+        expect(wrapper).toMatchSnapshot()
+    })
+});
+```
+
+Nosotros no podemos establecer el valor de un state desde los test, por lo que haremos es tomar el componente y añadirle un prop opcional para cada vez que se llame. Con esto logramos que al usar nuestro prop, se puedan poder elementos por defecto al mismo:
+
+```jsx
+const GifExpertApp = ({ defaultCategories = [] }) => {
+    const [categories, setCategories] = useState(defaultCategories)
+    ...
+}
+```
+
+Ahora si podemos hacer que el test pase cuando le entregamos algunas categorías por defecto, con lo que podemos calcular la cantidad de componentes `<GifGrid />` que se deben mostrar:
+
+```jsx
+describe('Pruebas al componente <GifExpertApp />', () => {
+    ...
+    test('Debe de mostrar una lista de categorías', () => {
+        const categories = ['Test', 'React']
+
+        const wrapper = shallow(<GifExpertApp defaultCategories={categories} />)
+        expect(wrapper).toMatchSnapshot()
+        expect(wrapper.find('GifGrid').length).toBe(categories.length)
+    })
+});
+```
+
+## Pruebas sobre customHooks
+
+Los hooks solo funcionan dentro del cuerpo de componentes de función, por lo que no podemos testear tan fácilmente un hook con enzyme. Para solucionar esto, vamos a instalar la librería [react-hooks-testing-library](https://react-hooks-testing-library.com/) con el comando `npm install --save-dev @testing-library/react-hooks`. Ahora si podemos testear nuestro hook de la siguiente manera:
+
+```js
+import '@testing-library/jest-dom'
+import { renderHook } from '@testing-library/react-hooks'
+import { useFetchGifs } from '../../hooks';
+
+
+describe('Pruebas al hook useFetchGifs', () => {
+    const category = 'test'
+
+    test('Debe de retornar el estado inicial', () => {
+        const { result} = renderHook(() => useFetchGifs(category))
+        const { data, loading } = result.current
+
+        expect(data).toEqual([])
+        expect(loading).toBe(true)
+    })
+});
+```
+
+## customHook - waitForNextUpdate
+
+Para poder obtener los valores que retorna el hook luego de hacer la petición, debemos tener el cuidado con el hecho de que al finalizar el primer test, el componente se desmonta y por lo tanto no podemos hacer ninguna petición. Vamos a usar otro elemento de `renderHook` llamado `waitForNextUpdate`, el cual es una función que retorna una promesa vacía, pero que nos ayuda a controlar los cambios en el hook:
+
+```js
+describe('Pruebas al hook useFetchGifs', () => {
+    ...
+    test('Debe retornar un arreglo de imágenes y el loading en false', async () => {
+        const { result, waitForNextUpdate } = renderHook(() => useFetchGifs(category))
+        await waitForNextUpdate()
+        const { data, loading } = result.current
+
+        expect(data.length).toBe(10)
+        expect(loading).toBe(false)
+    })
+});
+```
+
+Con lo anterior vamos a obtener el siguiente error:
+
+```txt
+Warning: Can't perform a React state update on an unmounted component. This is a no-op, but it indicates a memory leak in your application. To fix, cancel all subscriptions and asynchronous tasks in a useEffect cleanup function.
+```
+
+La manera en que lo podemos solucionar es añadir la misma función `waitForNextUpdate` dentro del primer test, con el fin de que no desmonte el hook, si no que espere al siguiente uso:
+
+```js
+describe('Pruebas al hook useFetchGifs', () => {
+    const category = 'test'
+
+    test('Debe de retornar el estado inicial', async () => {
+        const { result, waitForNextUpdate } = renderHook(() => useFetchGifs(category))
+        const { data, loading } = result.current
+
+        await waitForNextUpdate()
+        ...
+    })
+
+    test('Debe retornar un arreglo de imágenes y el loading en false', async () => {
+        const { result, waitForNextUpdate } = renderHook(() => useFetchGifs(category))
+        await waitForNextUpdate()
+        const { data, loading } = result.current
+
+        expect(data.length).toBe(10)
+        expect(loading).toBe(false)
+    })
+});
+```
