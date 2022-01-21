@@ -22,17 +22,15 @@ export const useFetch = (url) => {
         fetch(url)
             .then(res => res.json())
             .then(data => {
-                setTimeout(() => {
-                    if (isMounted.current) {
-                        setState({
-                            data,
-                            loading: false,
-                            error: null
-                        })
-                    } else {
-                        console.log('setState no se llamo')
-                    }
-                }, 2000);
+                if (isMounted.current) {
+                    setState({
+                        data,
+                        loading: false,
+                        error: null
+                    })
+                } else {
+                    console.log('setState no se llamo')
+                }
             })
             .catch(error => {
                 setState({

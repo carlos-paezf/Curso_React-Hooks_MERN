@@ -523,3 +523,240 @@ export const useFetch = (url) => {
     ...
 };
 ```
+
+## useLayoutEffect
+
+El hook `useLayoutEffect` tiene la firma idéntica al hook `useEffect`, solo que el primero se dispara de manera síncrona después de todas las mutaciones del DOM. Una manera de usar este hook, es para obtener las mediciones de algún elemento dentro del DOM luego de su renderización. Por ejemplo, queremos tomar la medición de un párrafo que se está renderizando en cada petición. A dicho párrafo le vamos a asignar una referencia que nos servirá para poder observar sus propiedades en cada renderización:
+
+```jsx
+export const LayoutEffect = () => {
+    ...
+    const [boxSize, setBoxSize] = useState({});
+
+    const pQuote = useRef();
+
+    useLayoutEffect(() => {
+        setBoxSize(pQuote.current.getBoundingClientRect())
+    }, [quote]);
+
+    return (
+        <>
+            ...
+            <blockquote className="blockquote d-flex" style={{ "flexDirection" : 'column' }}>
+                <p className="mb-2" ref={pQuote}>{quote}</p>
+                <pre>{JSON.stringify(boxSize, null, 3)}</pre>
+            </blockquote>
+            ...
+        </>
+    );
+};
+```
+
+## Memo - Método de React
+
+Vamos a crear un componente que actuara como componente padre, en el cual usamos el hook de `useCounter`. Tenemos 2 botones dentro de dicho componente: el primero para incrementar el contador, y el segundo para mostrar u ocultar algo.
+
+```jsx
+import React, { useState } from 'react';
+import { Small } from '.';
+import { useCounter } from '../../hooks';
+
+export const Memorize = () => {
+
+    const { state: counter, increment } = useCounter(10)
+    const [show, setShow] = useState(true);
+
+    return (
+        <>
+            <h2>Counter <Small value={counter} /></h2>
+            <hr />
+            <button className="btn btn-primary" onClick={() => increment(1)}>+1</button>    
+            <button className="btn btn-outline-primary mx-3" onClick={() => setShow(!show)}>Show/Hide {JSON.stringify(show)}</button>    
+        </>
+    )
+};
+```
+
+El componente que hace las veces de hijo nos permite saber en que momento se renderiza el componente:
+
+```jsx
+export const Small = ({ value }) => {
+    console.log('Small se está llamando')
+
+    return <small>{value}</small>;
+};
+```
+
+Cuando incrementamos el contador, el componente `<Small />` se renderiza cada que presionamos cualquiera de los 2 botones, y esto es algo que React hace cada que detecta el cambio dentro de cualquier estado en el componente, pero esto no es lo que deseamos, ya que por ejemplo si estamos haciendo peticiones HTTP, se harían múltiples veces y saturarían la cantidad de peticiones que podemos hacer.
+
+La manera de solucionar lo anterior, es mediante la función `memo` de react, el cual nos permite almacenar el estado del componente, mediante sus props no cambien:
+
+```jsx
+export const Small = React.memo(({ value }) => {
+    console.log('Small se está llamando')
+
+    return <small>{value}</small>;
+});
+```
+
+## useMemo
+
+El hook `useMemo` es bastante recomendable cuando queremos almacenar los resultados de funciones pesadas que solo deben cambiar su valor si una dependencia cambia, más no todo los estados de la aplicación:
+
+```jsx
+export const MemoHook = () => {
+
+    const { state: counter, increment } = useCounter(5000)
+    ...
+    const procesoPesado = (iteraciones) => {
+        for (let i = 0; i < iteraciones; i++) {
+            console.log(`Realizando Iteración`)
+        }
+        return `${iteraciones} iteraciones realizadas`
+    }
+
+    const memoProcesoPesado = useMemo(() => procesoPesado(counter), [counter]);
+
+    return (
+        <>
+            <h2>Counter useMemorize {counter}</h2>
+            <hr />
+            <p>{ memoProcesoPesado }</p>
+            ...    
+        </>
+    )
+};
+```
+
+## useCallback
+
+Vamos a crear un componente en el cual tenemos un contador, pero el botón de incrementar se implementa de otro componente:
+
+```jsx
+export const CallbackHook = () => {
+
+    const [counter, setCounter] = useState(10)
+
+    const increment = () => setCounter(counter + 1)    
+
+    return (
+        <>
+            <h2>useCallback Hook</h2>
+            <hr />
+
+            <ShowIncrement increment={increment} />
+        </>
+    )
+}
+```
+
+```jsx
+export const ShowIncrement = ({ increment }) => {
+    console.log('Generando ShowIncrement')
+
+    return <button className="btn btn-primary" onClick={increment}></button>
+};
+```
+
+Cada que presionamos el botón, se vuelve a generar el componente, y eso algo que ni siquiera usando `React.memo` podemos solucionar. Esto se debe a que cada que cambia el estado de `<CallbackHook />` la función `increment` va a estar apuntando a un lugar en memoria diferente, haciendo que prácticamente se una función diferente. El hook `useCallback` nos permite almacenar el valor de una función teniendo en cuenta que solo se debe renderizar de nuevo si se cambian las dependencias. En nuestro caso, necesitamos modificar la manera en que hacemos el incremento, puesto que no queremos alterar de manera directa el estado del counter. El hook va a tener la función que se va a almacenar, mientras la dependencia de `setCounter` no se altere:
+
+```jsx
+export const CallbackHook = () => {
+
+    const [counter, setCounter] = useState(10)
+
+    const increment = useCallback(() => setCounter(prev => prev + 1), [setCounter])
+
+    return (
+        <>
+            <h2>useCallback Hook: {counter}</h2>
+            <hr />
+
+            <ShowIncrement increment={increment} />
+        </>
+    )
+}
+```
+
+Dentro del componente `<ShowIncrement />` debemos hacer que ahora se almacene el estado de su renderización:
+
+```jsx
+export const ShowIncrement = React.memo(...)
+```
+
+Si queremos pasar argumentos a la función del `useCallback`, podemos hacer los siguiente:
+
+```jsx
+export const CallbackHook = () => {
+    ...
+    const increment = useCallback((n) => setCounter(prev => prev + n), [setCounter])
+    ...
+}
+```
+
+```jsx
+export const ShowIncrement = React.memo(({ increment }) => {
+    return <button className="btn btn-primary" onClick={() => increment(5)}>+5</button>
+});
+```
+
+## Tarea Memorize
+
+Tenemos 2 componentes:
+
+```jsx
+import React, { useState } from 'react';
+import { Hijo } from '.';
+
+export const Padre = () => {
+    const numeros = [2, 4, 6, 8, 10]
+    const [valor, setValor] = useState(0)
+
+    const incrementar = (n) => setValor(valor + n)
+
+    return (
+        <>
+            <h2>Padre</h2>
+            <p>Total: {valor}</p>
+            <hr />
+            {
+                numeros.map(n => <Hijo key={n} numero={n} incrementar={incrementar} />)
+            }
+        </>
+    );
+};
+```
+
+```jsx
+import React from 'react';
+import PropTypes from 'prop-types'
+
+
+export const Hijo = ({ numero, incrementar }) => {
+    console.log('Generando Hijo')
+    return <button className="btn btn-primary mx-3" onClick={() => incrementar(numero)}>{numero}</button>;
+};
+
+
+Hijo.propTypes = {
+    numero: PropTypes.number.isRequired,
+    incrementar: PropTypes.func.isRequired
+}
+```
+
+La idea es que el componente Hijo solo se renderice las primeras 5 veces y pueda conservar su estado en cada botón, no queremos el comportamiento de que cada que presionamos uno de los botones se renderice 5 veces más. La solución es usar useCallback para retornar una versión memorizada de la función para incrementar mientras no cambien las dependencias del hook:
+
+```jsx
+export const Padre = () => {
+    ...
+    // const incrementar = (n) => setValor(valor + n)
+    const incrementar = useCallback((n) => setValor(prev => prev + n), [setValor])
+    ...
+};
+```
+
+Luego, el componente Hijo lo atrapamos con `React.memo` para tener una versión guardada de su renderización mientras no cambien los props:
+
+```jsx
+export const Hijo = React.memo(({ numero, incrementar }) => {...});
+```
