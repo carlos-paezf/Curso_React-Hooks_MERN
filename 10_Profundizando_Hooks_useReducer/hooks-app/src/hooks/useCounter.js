@@ -1,5 +1,9 @@
 import { useState } from "react";
 
+/**
+ * @param [initialState=10] - The initial state of the counter.
+ * @returns The state, increment, decrement, and reset functions.
+ */
 export const useCounter = (initialState = 10) => {
     const [state, setState] = useState(initialState);
 

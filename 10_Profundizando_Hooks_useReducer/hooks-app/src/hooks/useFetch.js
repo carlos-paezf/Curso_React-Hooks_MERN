@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 
+/**
+ * @param url - the URL to fetch
+ * @returns The state object.
+ */
 export const useFetch = (url) => {
 
     const isMounted = useRef(true);
@@ -42,4 +46,4 @@ export const useFetch = (url) => {
     }, [url]);
 
     return state
-};
+}
