@@ -1,0 +1,76 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Pruebas al componente <HookApp /> Debe mostrarse correctamente 1`] = `
+<Fragment>
+  <h1>
+    Hooks App
+  </h1>
+  <hr />
+  <table
+    className="table"
+  >
+    <tbody>
+      <tr>
+        <th>
+          <CounterApp />
+        </th>
+        <th>
+          <CounterWithCustomHook />
+        </th>
+      </tr>
+      <tr>
+        <th>
+          <SimpleForm />
+        </th>
+        <th>
+          <FormWithCustomHook />
+        </th>
+      </tr>
+      <tr>
+        <th
+          colSpan={2}
+        >
+          <MultipleCustomHooks />
+        </th>
+      </tr>
+      <tr>
+        <th>
+          <FocusScreen />
+        </th>
+        <th>
+          <RealExampleRef />
+        </th>
+      </tr>
+      <tr>
+        <th
+          colSpan={2}
+        >
+          <LayoutEffect />
+        </th>
+      </tr>
+      <tr>
+        <th>
+          <Memorize />
+        </th>
+        <th>
+          <MemoHook />
+        </th>
+      </tr>
+      <tr>
+        <th
+          colSpan={2}
+        >
+          <CallbackHook />
+        </th>
+      </tr>
+      <tr>
+        <th
+          colSpan={2}
+        >
+          <Padre />
+        </th>
+      </tr>
+    </tbody>
+  </table>
+</Fragment>
+`;

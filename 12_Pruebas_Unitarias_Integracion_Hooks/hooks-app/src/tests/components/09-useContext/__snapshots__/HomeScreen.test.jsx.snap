@@ -1,0 +1,18 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Pruebas en <HomeScreen /> Debe mostrarse correctamente 1`] = `
+Array [
+  <h2>
+    Home Screen
+  </h2>,
+  <hr />,
+  <pre
+    className="container"
+  >
+    {
+     "name": "test",
+     "email": "mail"
+}
+  </pre>,
+]
+`;

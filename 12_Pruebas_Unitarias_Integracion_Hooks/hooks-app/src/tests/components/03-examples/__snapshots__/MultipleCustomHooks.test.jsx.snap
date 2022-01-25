@@ -1,0 +1,21 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Pruebas al componente <Multiple Custom Hook /> Debe de mostrarse correctamente 1`] = `
+<Fragment>
+  <h2>
+    Multiple CustomHooks - Breaking Bad Quotes
+  </h2>
+  <hr />
+  <div
+    className="alert alert-info text-center"
+  >
+    ...Loading...
+  </div>
+  <button
+    className="btn btn-dark"
+    onClick={[Function]}
+  >
+    Siguiente Cita
+  </button>
+</Fragment>
+`;
