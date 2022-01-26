@@ -12,6 +12,12 @@ export const Navbar = () => {
         })
     }
 
+    const links = [
+        { id: 1, text: 'Marvel', path: '/marvel' },
+        { id: 2, text: 'DC', path: '/dc' },
+        { id: 3, text: 'Search', path: '/search' },
+    ]
+
 
     return (
         <nav className="navbar navbar-expand-sm navbar-dark bg-dark px-5">
@@ -21,15 +27,14 @@ export const Navbar = () => {
                 </Link>
                 <div className="navbar-collapse">
                     <div className="navbar-nav">
-                        <NavLink to="/marvel"
-                            className={({ isActive }) => 'nav-item nav-link ' + (isActive && 'active')}>
-                            Marvel
-                        </NavLink>
-
-                        <NavLink to="/dc"
-                            className={({ isActive }) => 'nav-item nav-link ' + (isActive && 'active')}>
-                            DC
-                        </NavLink>
+                        {
+                            links.map(({ id, text, path }) => (
+                                <NavLink key={id} to={path}
+                                    className={({ isActive }) => 'nav-item nav-link ' + (isActive && 'active')}>
+                                    {text}
+                                </NavLink>
+                            ))
+                        }
                     </div>
                 </div>
 

@@ -380,3 +380,291 @@ export const HeroScreen = () => {
     )
 }
 ```
+
+## Estilo del componente HeroScreen
+
+Necesitamos desestructurar las propiedades del héroe para poderlos usar dentro de la interfaz gráfica. Luego tenemos un botón para regresar a la ruta anterior, en tal caso usamos el hook `useNavigate` para poder regresar 1 página atras (-1):
+
+```jsx
+import React from 'react';
+import { useParams, Navigate, useNavigate } from 'react-router-dom'
+import { getHeroByID } from '../../selectors';
+
+
+export const HeroScreen = () => {
+
+    const { idHero } = useParams()
+
+    const navigate = useNavigate()
+
+    const hero = getHeroByID(idHero)
+    if (!hero) return <Navigate to='/' />
+
+    const { id, alter_ego, characters, first_appearance, publisher, superhero } = hero
+
+    const handleReturn = () => {
+        navigate(-1)
+    };    
+
+    return (
+        <div className="row mt-5">
+            <div className="col-4">
+                <img src={`/assets/${id}.jpg`} alt={superhero} className="img-thumbnail" />
+            </div>
+            <div className="col-8">
+                <h3>{ superhero }</h3>
+                <ul className="list-group my-3">
+                    <li className="list-group-item"><b>Alter ego:</b> {alter_ego}</li>
+                    <li className="list-group-item"><b>Publisher:</b> {publisher}</li>
+                    <li className="list-group-item"><b>First Appearance:</b> {first_appearance}</li>
+                </ul>
+                <h5 className='my-3'>Characters</h5>
+                <p>{characters}</p>
+
+                <button className="btn btn-outline-info" onClick={handleReturn}>
+                    Regresar
+                </button>
+            </div>
+        </div>
+    )
+}
+```
+
+## useMemo
+
+Dentro de los componentes debemos tener cuidado cuando hacemos peticiones a las bases de datos o APIs a través endpoints o selectores, ya que pueden ser procesos pesados y no debemos llamarlos en cada cambio del estado de un componente. Si la petición no cambia, lo ideal sería almacenar el resultado de la respuesta en cada renderización para ello evitar recargas a la solicitud en cada pequeño cambio indirecto dentro del state.
+
+En nuestro caso necesitamos que dentro del componente `<HeroScreen />` se almacene el resultado de la solicitud que se hace para obtener la información del héroe por su ID, y solo se hace el cambio de los resultado cada que la dependencia del Id cambie.
+
+```jsx
+export const HeroScreen = () => {
+    ...
+    const hero = useMemo(() => getHeroByID(idHero), [idHero]);
+    ...
+}
+```
+
+También necesitamos hacer lo mismo para el componente `<HeroList />`, con el fin de poner almacenar la información de los héroes por casa publicadora. Por el momento son procesos pequeños, pero cuando se hacen peticiones más grandes, debemos reducir el consumo de datos al evitar estar reenviando una solicitud que puede llegar a considerarse innecesaria:
+
+```jsx
+export const HeroList = ({ publisher }) => {
+    const heroes = useMemo(() => getHeroByPusblisher(publisher), [publisher])
+    ...
+}
+```
+
+## Animaciones en nuestro componente
+
+Vamos a usar [Animate.css](https://animate.style/) para darle algunos estilos animados a nuestro componentes. Vamos a usar el CDN que nos ofrece su documentación, dentro de `public/index.html`:
+
+```html
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+</head>
+```
+
+## SearchComponent
+
+Vamos a usar el custom hook de secciones pasadas llamado `useForm`, por lo que creamos su archivo y lo copiamos:
+
+```js
+import { useState } from "react";
+
+/**
+ * @param [initialState] - The initial state of the form.
+ * @returns The values object, the handleInputChange function, and the reset function.
+ */
+export const useForm = (initialState = {}) => {
+    const [values, setValues] = useState(initialState);
+
+    const reset = () => setValues(initialState)
+
+    const handleInputChange = ({ target }) => {
+        setValues({
+            ...values,
+            [target.name]: target.value
+        })
+    }
+
+    return [values, handleInputChange, reset]
+}
+```
+
+Luego dentro del componente `<SeachScreen />` lo implementamos:
+
+```jsx
+export const SearchScreen = () => {
+
+    const [formValues, handleInputChange, reset] = useForm({ searchText: '' })
+
+    const { searchText } = formValues
+
+    const handleSubmit = (e) => {
+        e.preventDefault()
+        reset()
+    }
+
+    return (
+        <>
+            ...
+            <div className="row">
+                <div className="col-sm-12 col-md-6 col-lg-5">
+                    ...
+                    <form onSubmit={handleSubmit}>
+                        <input name="searchText" value={searchText} onChange={handleInputChange} ... />
+                        ...
+                    </form>
+                </div>
+            </div>
+        </>
+    )
+}
+```
+
+## Mostrar listado de héroes
+
+Creamos un nuevo selector en el que buscamos por nombre y retonamos una lista de héroes que coincidan con la búsqueda:
+
+```js
+import { heroes } from "../data/heroes"
+
+export const getHeroByName = (name = '') => {
+    name = name.toLowerCase()
+    return heroes.filter(hero => hero.superhero.toLowerCase().includes(name))
+}
+```
+
+Luego dentro del componente `<SearchScreen />` usamos el selector:
+
+```jsx
+export const SearchScreen = () => {
+    const [heroes, setHeroes] = useState([]);
+    ...
+    const handleSubmit = (e) => {
+        e.preventDefault()
+        setHeroes(getHeroByName(searchText))
+        reset()
+    }
+
+    return (
+        <>
+            ...
+            <div className="row">
+                ...
+                <div className="col-sm-12 col-md-6 col-lg-7">
+                    <h4>Results:</h4>
+                    <hr />
+                    {
+                        (heroes.length > 0)
+                            ? heroes.map(hero => <HeroCard key={hero.id} {...hero} />)
+                            : <h5>No hay coincidencias</h5>
+                    }
+                </div>
+            </div>
+        </>
+    )
+}
+```
+
+## Aplicar filto de héroes - QueryString
+
+Lo que vamos a hacer es agregar la búsqueda a los query params de la url, por lo que necesitamos el hook `useNavigate` de `react-router-dom`:
+
+```jsx
+import { useNavigate } from 'react-router-dom';
+
+export const SearchScreen = () => {
+    const navigate = useNavigate()
+    ...
+    const handleSubmit = (e) => {
+        e.preventDefault()
+        navigate(`?q=${searchText}`)
+        reset()
+    }
+    ...
+}
+```
+
+Para acceder a los query params de una manera más sencilla, vamos a instalar la librería `query-string` con el comando `npm i query-string`. Ahora podemos acceder a la locación actual con el hook `useLocation` de react-router-dom, y por medio de la librería query string, desestructurar los query params que se encuentra en la propiedad search de la ruta actual. Dicho query será inicialmente un string vacio y será el valor inical del searchText:
+
+```jsx
+import { useNavigate, useLocation } from 'react-router-dom';
+import queryString from 'query-string'
+
+
+export const SearchScreen = () => {
+    ...
+    const location = useLocation()
+
+    const { q = '' } = queryString.parse(location.search)
+
+    const [formValues, handleInputChange, reset] = useForm({
+        searchText: q
+    })
+    ...
+```
+
+Dentro de nuestro selector vamos a evaluar si el nombre es un string vacio, por que en tal caso debemos retornar un arreglo vacio:
+
+```jsx
+export const getHeroByName = (name = '') => {
+    if (name === '') return []
+    ...
+}
+```
+
+Volvemos a nuestro componente y ya podemos memorizar la petición al selector y cambiando el valor guardado mientras no cambie el valor de la query, y a apartir del arreglo resultante mostrar el componente `<HeroCard />` con la información de los heróes:
+
+```jsx
+export const SearchScreen = () => {
+    ...
+    const heroesFilter = useMemo(() => getHeroByName(q), [ q ])
+    ...
+    return (
+        <>
+            ...
+            <div className="row">
+                ...
+                <div className="col-sm-12 col-md-6 col-lg-7">
+                    ...
+                    {
+                        (heroesFilter.length > 0)
+                            ? heroesFilter.map(hero => <HeroCard key={hero.id} {...hero} />)
+                            : <div className="alert alert-info">No hay coincidencias</div>
+                    }
+                </div>
+            </div>
+        </>
+    )
+}
+```
+
+## Mostrar mensajes condicionales
+
+Vamos a cambiar el mensaje condicional que tenemos por uno más especial:
+
+```jsx
+export const SearchScreen = () => {
+    ...
+    return (
+        <>
+            ...
+            <div className="row">
+                ...
+                <div className="col-sm-12 col-md-6 col-lg-7">
+                    <h4>Results:</h4>
+                    <hr />
+                    {
+                        (q === '')
+                            ? <div className="alert alert-info">Search a Hero</div>
+                            : (heroesFilter.length === 0) && <div className="alert alert-info">No Matches by { q }</div>
+                    }
+                    {
+                        heroesFilter.map(hero => <HeroCard key={hero.id} {...hero} />)
+                    }
+                </div>
+            </div>
+        </>
+    )
+}
+```
