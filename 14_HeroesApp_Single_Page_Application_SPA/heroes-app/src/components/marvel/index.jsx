@@ -1,0 +1,1 @@
+export { MarvelScreen } from "./MarvelScreen";
