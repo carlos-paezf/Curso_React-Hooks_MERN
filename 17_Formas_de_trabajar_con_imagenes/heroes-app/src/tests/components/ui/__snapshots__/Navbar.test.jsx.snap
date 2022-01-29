@@ -1,0 +1,67 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Test to <Navbar /> component Should match with Snapshot 1`] = `
+<nav
+  className="navbar navbar-expand-sm navbar-dark bg-dark px-5"
+>
+  <div
+    className="container-fluid"
+  >
+    <a
+      className="navbar-brand"
+      href="/"
+      onClick={[Function]}
+    >
+      Publishers
+    </a>
+    <div
+      className="navbar-collapse"
+    >
+      <div
+        className="navbar-nav"
+      >
+        <a
+          className="nav-item nav-link false"
+          href="/marvel"
+          onClick={[Function]}
+        >
+          Marvel
+        </a>
+        <a
+          className="nav-item nav-link false"
+          href="/dc"
+          onClick={[Function]}
+        >
+          DC
+        </a>
+        <a
+          className="nav-item nav-link false"
+          href="/search"
+          onClick={[Function]}
+        >
+          Search
+        </a>
+      </div>
+    </div>
+    <div
+      className="navbar-collapse collapse w-100 order-3 dual-collapse2 d-flex justify-content-end"
+    >
+      <ul
+        className="navbar-nav ml-auto"
+      >
+        <span
+          className="nav-item nav-link text-info mx-3"
+        >
+          Test
+        </span>
+        <button
+          className="btn btn-outline-light"
+          onClick={[Function]}
+        >
+          Logout
+        </button>
+      </ul>
+    </div>
+  </div>
+</nav>
+`;
