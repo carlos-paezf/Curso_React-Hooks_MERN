@@ -1,3 +1,4 @@
+import React from 'react';
 import { mount } from 'enzyme'
 import { MemoryRouter } from 'react-router-dom'
 import { AuthContext } from '../../../auth'
@@ -32,5 +33,29 @@ describe('Test to <DashboardRoutes /> component', () => {
         )
         expect(wrapper).toMatchSnapshot()
         expect(wrapper.find('.text-info').text().trim()).toBe('Test')
+    })
+
+    test('Should match with Snapshot in Marvel path', () => {
+        const wrapper = mount(
+            <AuthContext.Provider value={contextValue}>
+                <MemoryRouter initialEntries={['/marvel']}>
+                    <DashboardRoutes />
+                </MemoryRouter>
+            </AuthContext.Provider>
+        )
+        expect(wrapper).toMatchSnapshot()
+        expect(wrapper.find('h1').text().trim()).toBe('Marvel Screen')
+    })
+
+    test('Should match with Snapshot in DC path', () => {
+        const wrapper = mount(
+            <AuthContext.Provider value={contextValue}>
+                <MemoryRouter initialEntries={['/dc']}>
+                    <DashboardRoutes />
+                </MemoryRouter>
+            </AuthContext.Provider>
+        )
+        expect(wrapper).toMatchSnapshot()
+        expect(wrapper.find('h1').text().trim()).toBe('DC Screen')
     })
 })
