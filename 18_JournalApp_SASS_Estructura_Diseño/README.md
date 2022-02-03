@@ -665,3 +665,161 @@ Nuestro partial tendrá los siguientes estilos:
     }
 }
 ```
+
+## NoteAppBar
+
+Vamos a crear un nuevo componente llamado `<NoteScreen />`, y también un partial llamado `_notes.scss`. Este último lo importamos en el archivo `styles.scss`:
+
+```scss
+...
+@import './components/notes'
+```
+
+El componente `<NoteScreen />` lo vamos a usar dentro de `<JournalScreen />`, y este luego se mostrará cuando se haya seleccionado alguna nota:
+
+```jsx
+export const JournalScreen = () => {
+    return (
+        <div className="journal__main-content">
+        ...
+            <main>
+                {/* <NothingSelected /> */}
+                <NoteScreen />
+            </main>
+        </div>
+    )
+}
+```
+
+Luego creamos un componente llamado `<NoteAppBar />`, en el cual tendremos una fecha y 2 botones:
+
+```jsx
+export const NotesAppBar = () => {
+    return (
+        <div className='notes__appbar'>
+            <span>El día de hoy</span>
+            <div>
+                <button className="btn">Picture</button>
+                <button className="btn">Save</button>
+            </div>
+        </div>
+    )
+}
+```
+
+Las clases para este componente están definidas dentro del partial `_notes.scss`:
+
+```scss
+.notes__appbar {
+    align-items: center;
+    background-color: $primary;
+    color: $white;
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 20px;
+}
+```
+
+También se ha hecho una pequeña modificación dentro del partial `_buttons.scss`, para tener un efecto de hover en los botones:
+
+```scss
+.btn {
+    ...    
+    transition: color .2s linear;
+    ...
+    &:hover { color: darken($color: $white, $amount: 10); }
+}
+```
+
+El componente de `<NotesAppBar />` será usado dentro de `<NoteScreen />`:
+
+```jsx
+export const NoteScreen = () => {
+    return (
+        <div className='notes__main-content'>
+            <NotesAppBar />
+        </div>
+    )
+}
+```
+
+Y de nuevo, la clase de este componentes, se define dentro del partial `_notes.scss`:
+
+```scss
+.notes__main-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+```
+
+## Estructura y diseño del NoteScreen
+
+Dentro de `<NoteScreen />` vamos a crear un input, un textarea y una sección para las imágenes que suba el usuario:
+
+```jsx
+export const NoteScreen = () => {
+    return (
+        <div className='notes__main-content'>
+            <NotesAppBar />
+            <div className="notes__content">
+                <input type="text" placeholder='Some awesome title' className='notes__title-input' autoComplete='off' />
+                <textarea placeholder="What happened today?" className='notes__textarea'></textarea>
+
+                <div className="notes__image">
+                    <img src="https://images.unsplash.com/photo-1643669528728-191536f9bfba?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1277&q=80" alt="img" />
+                </div>
+            </div>
+        </div>
+    )
+}
+```
+
+Luego, dentro del partial `_notes.scss` creamos los estilos:
+
+```scss
+...
+
+.notes__content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 20px;
+}
+
+.notes__title-input,
+.notes__textarea {
+    border: none;
+
+    &:focus { outline: none; }
+}
+
+.notes__title-input {
+    color: $dark-grey;
+    font-size: 25px;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.notes__textarea {
+    border: none;
+    color: $dark-grey;
+    font-size: 20px;
+    flex: 1 1 auto;
+    resize: none;
+}
+
+.notes__image {
+    justify-content: center;
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+
+    img {
+        box-shadow: 3px 3px $dark-grey;
+        height: 150px;
+    }
+}
+```
+
+Por el momento, todos los componentes tienen información fija, en la siguiente sección empezaremos a usar Redux.
