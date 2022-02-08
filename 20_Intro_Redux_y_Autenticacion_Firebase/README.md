@@ -6,7 +6,7 @@
 - Redux Devtools
 - Thunk
 - Formularios
-- Google SingIn
+- Google SignIn
 - Acciones Asíncronas
 - Mantener el estado de la autenticación
 
@@ -154,3 +154,129 @@ export const LoginScreen = () => {
 ```
 
 Cuando volvemos al navegador y presionamos el botón de login, podemos observar que en el árbol del state tenemos el payload que le enviamos dentro del action.
+
+## Configuración inicial de Firebase
+
+Vamos a usar Firebase para la autenticación de nuestra aplicación. Dentro de la consola de Firebase creamos un nuevo proyecto con el nombre que queramos. Para habilitar la autenticación con Google, dentro de la consola de nuestro proyecto en Firebase, vamos a la pestaña de *Authentication*, y luego elegimos el método para hacer login, en nuestro caso necesitamos habilitar como *proveedor de acceso* a Google y el *proveedor nativo* de correo y contraseña.
+
+Luego vamos a instalar el manejador de Firebase dentro de nuestra aplicación, y esto lo hacemos con el comando `yarn add firebase@8.10.0`. Con esto instalamos la versión 8.10.0, la cual maneja namespaced, a diferencia de la versión 9, la cual es modular permitiendo hacer un tree shaken e importar las librerías necesarias. No se instalar esta última versión, con el fin de poder seguir al pie de la letra el curso.
+
+## Thunk Middleware - Acciones Asíncronas
+
+Necesitamos implementar un middleware dentro del dispatcher, que nos permita realizar peticiones asíncronas como el ingreso con google o hacer peticiones a la API. Vamos a usar la librería Redux Thunk, la cual instalamos con el comando `yarn add redux-thunk`. Dentro del archivo `store.js` hacemos la importación de la librería y la configuración de la misma, aquí debemos tener en cuenta que la creación del Store se modifica sustancialmente:
+
+```js
+import { ..., applyMiddleware, compose } from 'redux'
+import thunk from 'redux-thunk'
+
+...
+const composeEnhancers = (typeof window !== 'undefined' && (window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose))
+
+export const store = createStore(
+    reducers,
+    composeEnhancers(
+        applyMiddleware(thunk)
+    )
+)
+```
+
+Vamos a crear la primera acción asíncrona, la cual va a retornar un callback que llama a la función encargada de hacer enviar por el payload la información del usuario logueado cuando se resuelva la petición asíncrona.
+
+```js
+export const startLoginEmailPassword = (email, password) => {
+    return (dispatch) => {
+        setTimeout(() => { 
+            dispatch(login(123, 'Ferrer')) 
+        }, 3500)
+    }
+}
+```
+
+El anterior método, lo llamamos dentro de `<LoginScreen />`, al momento de ingresar con el formulario:
+
+```jsx
+export const LoginScreen = () => {
+    ...
+    const handleLogin = (e) => {
+        ...
+        dispatch(startLoginEmailPassword(email, password))
+    }   
+}
+```
+
+## Configurar Firebase y Google Sign-In
+
+Dentro de la consola de Firebase, necesitamos agregar Firebase a nuestro proyecto web, por lo que buscamos el icono `</>` dentro de la sección ***Descripción general del proyecto*** para poder registrar nuestra app. Luego vamos a crear un directorio dentro de nuestro proyecto que vamos a llamar `firebase`, y dentro del mismo creamos un archivo llamado `firebase-config.js`. En dicho archivo podemos poner el script que se nos muestra en la consola de firestore al registrar la app.
+
+```js
+import firebase from "firebase/app";
+import 'firebase/firestore'
+import 'firebase/auth'
+
+
+const firebaseConfig = {
+    apiKey: "AIzaSyDUQgWLFR3R9cY_ssYtz2xettq21hBaOjI",
+    authDomain: "journal-app-react-31a82.firebaseapp.com",
+    projectId: "journal-app-react-31a82",
+    storageBucket: "journal-app-react-31a82.appspot.com",
+    messagingSenderId: "503923159005",
+    appId: "1:503923159005:web:9da83f2ad716f2e1a09034"
+}
+
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore()
+const googleAuthProvider = new firebase.auth.GoogleAuthProvider()
+
+
+export { db, googleAuthProvider, firebase }
+```
+
+Ahora vamos a crear una acción que nos permita hacer el ingreso con el correo de google, por lo que creamos la siguiente función dentro de `auth.js`:
+
+```js
+export const startGoogleLogin = () => {
+    return (dispatch) => {
+        firebase.auth().signInWithPopup(googleAuthProvider)
+        .then(console.log)
+    }
+}
+```
+
+Luego dentro del componente `<LoginScreen />` creamos una función que se active cuando se presione sobre el botón para el ingreso con google:
+
+```jsx
+export const LoginScreen = () => {
+    ...
+    const handleGoogleLogin = () => {
+        dispatch(startGoogleLogin)
+    }
+
+    return (
+        <>
+            ...
+            <form onSubmit={handleLogin}>
+                ...
+                <div className="auth__social-networks">
+                    ...
+                    <div className="google-btn" onClick={handleGoogleLogin}>...</div>
+                </div>
+                ...
+            </form>
+        </>
+    )
+}
+```
+
+Cuando ingresamos con una cuenta de google mediante el popup que aparece en nuestra aplicación, podemos obtener una información amplia del usuario, de la cual vamos tomar el corre, el display name y el uid. Esta última información la enviamos a la acción de login:
+
+```js
+export const startGoogleLogin = () => {
+    return (dispatch) => {
+        firebase.auth().signInWithPopup(googleAuthProvider)
+            .then(({ user: { displayName, uid } }) => dispatch(login(uid, displayName)))
+    }
+}
+```
+
+Si pasamos a Redux DevTools, podemos observar que el árbol de estado ha cambiado con la información de los dispatch de las acciones asíncronas.
