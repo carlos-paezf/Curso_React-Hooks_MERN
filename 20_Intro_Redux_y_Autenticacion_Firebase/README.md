@@ -511,3 +511,146 @@ export const startRegisterWithNameEmailPassword = (email, password, name) => {
     }
 }
 ```
+
+## Realizar el login de usuario con correo y contraseña
+
+Dentro del componente `<LoginScreen />` vamos a darle una validación a los campos, y en caso de error, mostrar el mensaje necesario. Para ello primero creamos la función para validad los campos y lo usamos dentro de la función que se ejecuta al hacer submit:
+
+```jsx
+export const LoginScreen = () => {
+    ...
+    const handleLogin = (e) => {
+        e.preventDefault()
+        isFormValid() && dispatch(startLoginEmailPassword(email, password))
+    }
+
+    const isFormValid = () => {
+        if (!validator.isEmail(email)) {
+            dispatch(setError('Email is required'))
+            return false
+        }
+        else if (password.length < 5) {
+            dispatch(setError('Password is required'))
+            return false
+        }
+        dispatch(removeError())
+        return true
+    }
+    ...
+}
+```
+
+Luego usamos el hook `useSelector` para poder obtener la información del estado del store, más específicamente el objeto de los errores:
+
+```jsx
+export const LoginScreen = () => {
+    ...
+    const { msgError } = useSelector(state => state.ui)
+    ...
+    return (
+        <>
+            <h3 className="auth__title">Login</h3>
+            <form onSubmit={handleLogin}>
+                {
+                    msgError && <div className="auth__alert-error">{msgError}</div>
+                }
+                ...
+            </form>
+        </>
+    )
+}
+```
+
+Para evitar que cuando se cambie de ruta entre login y logout, se mantenga lo errores de la ruta anterior, vamos a darle funcionalidad al evento onClick de los componentes `<Link />`, disparando la acción de remover el error:
+
+```jsx
+<Link ... onClick={() => dispatch(removeError())}>...</Link>
+```
+
+Ahora, para poder darle una funcionalidad completa a la acción de ingreso con correo y contraseña vamos a hacer lo siguiente:
+
+```js
+export const startLoginEmailPassword = (email, password) => {
+    return (dispatch) => {
+        firebase.auth().signInWithEmailAndPassword(email, password)
+            .then(({ user }) => {
+                dispatch(login(user.uid, user.displayName))
+            })
+            .catch(error => console.log(error))
+    }
+}
+```
+
+## Tarea: Loading State
+
+Lo primero que vamos a hacer es crear 2 nuevos tipos dentro de `types.js`:
+
+```js
+export const types = {
+    ...,
+    uiStartLoading: '[UI] Start Loading',
+    uiFinishLoading: '[UI] Finish Loading'
+}
+```
+
+Luego definimos las 2 acciones en el `uiReducer` con el fin de cambiar el loading dentro del estado:
+
+```js
+export const uiReducer = (state = initialState, action) => {
+    switch (action.type) {
+        ...
+        case types.uiStartLoading: return { ...state, loading: true }
+        case types.uiFinishLoading: return { ...state, loading: false }
+        ...
+    }
+}
+```
+
+Dentro del archivo `ui.js` vamos a crear 2 acciones que nos permitan hacer el cambio del loading:
+
+```js
+export const startLoading = () => ({ type: types.uiStartLoading })
+
+export const finishLoading = () => ({ type: types.uiFinishLoading })
+```
+
+Estas 2 acciones serán despachadas dentro de la acción `startLoginEmailPassword`. Una vez se llama la acción de dispara el loading, y hasta que no se obtiene respuesta, no cambia el estado de loading:
+
+```js
+export const startLoginEmailPassword = (email, password) => {
+    return (dispatch) => {
+        dispatch(startLoading())
+        firebase.auth().signInWithEmailAndPassword(email, password)
+            .then(({ user }) => {
+                dispatch(login(user.uid, user.displayName))
+                dispatch(finishLoading())
+            })
+            .catch(error => {
+                console.log(error)
+                dispatch(finishLoading())
+            })
+    }
+}
+```
+
+Para bloquear los botones de login o de register, necesitamos obtener la propiedad de loading mediante el hook `useSelector`:
+
+```jsx
+export const LoginScreen = () => {
+    ...
+    const { loading, msgError } = useSelector(state => state.ui)
+    ...
+    return (
+        <>
+            <h3 className="auth__title">Login</h3>
+            <form onSubmit={handleLogin}>
+                ...
+                <button type='submit' className="btn btn-primary btn-block" disabled={loading}>Login</button>
+                ...
+            </form>
+        </>
+    )
+}
+```
+
+Podemos hacer lo mismo para la acción de `startRegisterWithNameEmailPassword` (disparar si está cargando o no), y el disabled del botón en el componente `<RegisterScreen />`

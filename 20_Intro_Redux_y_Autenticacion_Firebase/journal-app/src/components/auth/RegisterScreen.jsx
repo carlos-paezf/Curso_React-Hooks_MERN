@@ -9,7 +9,7 @@ import { removeError, setError, startRegisterWithNameEmailPassword } from '../..
 export const RegisterScreen = () => {
 
     const dispatch = useDispatch()
-    const { msgError } = useSelector(state => state.ui)
+    const { loading, msgError } = useSelector(state => state.ui)
 
     const [formValues, handleInputChange] = useForm({
         name: 'Ferrer',
@@ -54,9 +54,9 @@ export const RegisterScreen = () => {
                 <input type="password" name='password' value={password} onChange={handleInputChange} className="auth__input" placeholder="Password" autoComplete='off' />
                 <input type="password" name='confirm_password' value={confirm_password} onChange={handleInputChange} className="auth__input" placeholder="Confirm Password" autoComplete='off' />
 
-                <button type='submit' className="btn btn-primary btn-block mb-5">Register</button>
+                <button type='submit' className="btn btn-primary btn-block mb-5" disabled={loading}>Register</button>
 
-                <Link className='link' to="/auth/login">Already registered?</Link>
+                <Link className='link' to="/auth/login" onClick={() => dispatch(removeError())}>Already registered?</Link>
             </form>
         </>
     )
