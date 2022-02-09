@@ -1,10 +1,11 @@
 import { createStore, combineReducers, applyMiddleware, compose } from 'redux'
-import { authReducer } from '../reducers'
+import { authReducer, uiReducer } from '../reducers'
 import thunk from 'redux-thunk'
 
 /* The above code is combining all the reducers into one. */
 const reducers = combineReducers({
     auth: authReducer,
+    ui: uiReducer
 })
 
 /* Checking if the window object exists and if it does, it checks if the __REDUX_DEVTOOLS_EXTENSION__

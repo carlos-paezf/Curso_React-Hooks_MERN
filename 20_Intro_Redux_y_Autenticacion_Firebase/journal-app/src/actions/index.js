@@ -1,1 +1,2 @@
-export { login, startLoginEmailPassword, startGoogleLogin } from "./auth";
+export { login, startLoginEmailPassword, startGoogleLogin, startRegisterWithNameEmailPassword } from "./auth";
+export { setError, removeError } from './ui'
