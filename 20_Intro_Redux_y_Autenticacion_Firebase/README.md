@@ -654,3 +654,210 @@ export const LoginScreen = () => {
 ```
 
 Podemos hacer lo mismo para la acción de `startRegisterWithNameEmailPassword` (disparar si está cargando o no), y el disabled del botón en el componente `<RegisterScreen />`
+
+## Mantener el estado de la autenticación al recargar
+
+Dentro del componente `<AppRouter />` vamos a tener un efecto con el que creamos un Observable que nos permita observar el estado de cambio en el Auth del usuario. El observable se va a lanzar cada que modifique la información del usuario, por ejemplo con un registro, un login como email y contraseña o el ingreso con una cuenta de google. Necesitamos que cuando se lleve a cabo el efecto, se realice un dispatch a la acción del login con las credenciales del usuario, en caso de que el mismo exista. El efecto tiene la dependencia del dispatch, el cual puede cambiar.
+
+```jsx
+export const AppRouter = () => {
+
+    const dispatch = useDispatch()
+
+    useEffect(() => {
+        firebase.auth().onAuthStateChanged(user => {
+            user?.uid && dispatch(login(user.uid, user.displayName))
+        })
+    }, [dispatch])
+    ...
+}
+```
+
+Ahora, cada que ingresamos a nuestra aplicación, como tenemos credenciales de usuario, podemos acceder a lo que sería nuestra zona privada, pero la protección de rutas se hará en clases siguientes.
+
+## Mostrar un loading global en la aplicación
+
+Vamos a crear una bandera que nos permita saber cuando se está obteniendo la información del usuario o no, con el fin de poder mostrar algo mediante renderizado condicional, apoyándonos en dicha bandera.
+
+```jsx
+export const AppRouter = () => {
+    ...
+    const [checking, setChecking] = useState(true)
+
+    useEffect(() => {
+        firebase.auth().onAuthStateChanged(user => {
+            ...
+            setChecking(false)
+        })
+    }, [..., setChecking])
+
+    if (checking) return <h1>Loading...</h1>
+
+    return (...)
+}
+```
+
+Vamos a crear otra bandera para saber si el usuario está logeado o no, esto con el fin de poder hacer la protección de las rutas:
+
+```jsx
+export const AppRouter = () => {
+    ...
+    const [isLoggedIn, setIsLoggedIn] = useState(false)
+
+    useEffect(() => {
+        firebase.auth().onAuthStateChanged(user => {
+            if (user?.uid) {
+                ...
+                setIsLoggedIn(true)
+            } else {
+                setIsLoggedIn(false)
+            }
+            ...
+        })
+    }, [..., setIsLoggedIn])
+    ...
+}
+```
+
+## Logout de Firebase
+
+Necesitamos crear una nueva acción dentro de `auth.js`, que nos permita limpiar la información del usuario dentro del state del store, y esto lo hacemos al crear una acción que use el tipo de logout:
+
+```js
+export const logout = () => ({ type: types.logout })
+```
+
+Está acción la llamamos dentro de otra acción asíncrona que se encarga de cerrar la sesión dentro de Firebase:
+
+```js
+export const startLogout = () => {
+    return async (dispatch) => {
+        await firebase.auth().signOut()
+        dispatch(logout())
+    }
+}
+```
+
+En el componente `<Sidebar />` vamos a darle funcionalidad al evento onClick del botón de logout, llamado a la última acción creada:
+
+```jsx
+export const Sidebar = () => {
+
+    const dispatch = useDispatch()
+
+    const handleLogout = () => {
+        dispatch(startLogout())
+    }
+
+    return (
+        <aside className="journal__sidebar">
+            <div className="journal__sidebar-navbar">
+                ...
+                <button className="btn" onClick={handleLogout}>Logout</button>
+            </div>
+            ...
+        </aside>
+    )
+}
+```
+
+## Protección de Rutas
+
+Vamos a crear 2 componentes: `<PrivateRoute />` y `<PublicRoute />`:
+
+> Recordar que para esta aplicación estamos usando react-router-dom v5, por lo que es muy diferente a la manera a la que aplicamos en la aplicación de las secciones anteriores, en donde usamos react-router-dom v6
+
+```jsx
+import React from 'react'
+import { Route, Redirect } from 'react-router-dom'
+import PropTypes from 'prop-types'
+
+
+export const PrivateRoute = ({ isLoggedIn, component: Component, ...rest }) => {
+    return <Route {...rest} component={(props) => isLoggedIn ? <Component {...props} /> : <Redirect to="/auth/login" />} />
+}
+
+
+PrivateRoute.propTypes = {
+    isLoggedIn: PropTypes.bool.isRequired,
+    component: PropTypes.func.isRequired
+}
+```
+
+```jsx
+import React from 'react'
+import { Route, Redirect } from 'react-router-dom'
+import PropTypes from 'prop-types'
+
+
+export const PublicRoute = ({ isLoggedIn, component: Component, ...rest}) => {
+    return <Route {...rest} component={(props) => isLoggedIn ? <Redirect to="/" /> : <Component {...props} /> } />
+}
+
+
+PublicRoute.propTypes = {
+    isLoggedIn: PropTypes.bool.isRequired,
+    component: PropTypes.func.isRequired
+}
+```
+
+Dentro del componente `<AppRouter />` hacemos la protección de las rutas:
+
+```jsx
+export const AppRouter = () => {
+    ...
+    const [isLoggedIn, setIsLoggedIn] = useState(false)
+    ...
+    return (
+        <>
+            <BrowserRouter>
+                <Switch>
+                    <PublicRoute path='/auth' isLoggedIn={isLoggedIn} component={AuthRouter} />
+                    <PrivateRoute exact path='/' isLoggedIn={isLoggedIn} component={JournalScreen} />
+                    <Redirect to='/auth/login' />
+                </Switch>
+            </BrowserRouter>
+        </>
+    )
+}
+```
+
+## Mensajes de error
+
+Vamos a usar la librería sweetalert2, por lo que usamos el comando `yarn add sweetalert2`. Dentro del archivo de acciones del auth hacemos la importación del paquete:
+
+```js
+import Swal from 'sweetalert2'
+```
+
+Dentro de la acción de iniciar sesión con el email y contraseña usamos la alerta en caso de error:
+
+```js
+export const startLoginEmailPassword = (email, password) => {
+    return (dispatch) => {
+        ...
+        firebase.auth().signInWithEmailAndPassword(email, password)
+            .then(...)
+            .catch(error => {
+                ...
+                Swal.fire('Error', error.message, 'error')
+            })
+    }
+}
+```
+
+También vamos a implementar la alerta dentro de la acción de registro:
+
+```js
+export const startRegisterWithNameEmailPassword = (email, password, name) => {
+    return (dispatch) => {
+        ...
+        firebase.auth().createUserWithEmailAndPassword(email, password)
+            .then(...)
+            .catch(error => {
+                ...
+                Swal.fire('Error', error.message, 'error')
+            })
+    }
+}
+```
