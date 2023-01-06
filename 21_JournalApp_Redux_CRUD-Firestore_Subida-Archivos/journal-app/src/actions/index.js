@@ -15,5 +15,6 @@ export {
 } from './ui'
 
 export {
-    startNewNotes
+    startNewNotes,
+    setNotes
 } from './notes'
